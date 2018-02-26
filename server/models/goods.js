@@ -12,4 +12,4 @@ var productSchema = new Schema({
 
 //param 表名，schema
 //表名会自动匹配数据库里带s的collection
-module.exports = mongoose.model('dumall-good', productSchema);
+module.exports = mongoose.model('good', productSchema);

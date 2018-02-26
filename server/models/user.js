@@ -18,4 +18,4 @@ var userSchema = new mongoose.Schema({
   "addressList":Array
 });
 
-module.exports = mongoose.model('dumall-user', userSchema);
+module.exports = mongoose.model('user', userSchema);
