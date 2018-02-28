@@ -62,35 +62,35 @@
               <li v-for="item in cartList" v-bind:key="item.productId">
                 <div class="cart-tab-1">
                   <div class="cart-item-check">
-                    <a href="javascipt:;" class="checkbox-btn item-check-btn" v-bind:class="{'check':item.checked=='1' || checkAll == '1'}" @click="checkCart(item)">
+                    <a href="javascipt:;" class="checkbox-btn item-check-btn" v-bind:class="{'check':item.checked=='1'}" @click="updateCart(item)">
                       <svg class="icon icon-ok">
                         <use xlink:href="#icon-ok"></use>
                       </svg>
                     </a>
                   </div>
                   <div class="cart-item-pic">
-                    <img v-lazy="'/static/img/'+item.productImage">
+                    <img v-bind:src="'/static/img/'+item.productImage" v-bind:alt="item.productName">
                   </div>
                   <div class="cart-item-title">
                     <div class="item-name">{{item.productName}}</div>
                   </div>
                 </div>
                 <div class="cart-tab-2">
-                  <div class="item-price">{{item.salePrice}}</div>
+                  <div class="item-price">{{item.salePrice|currency("¥", 2)}}</div>
                 </div>
                 <div class="cart-tab-3">
                   <div class="item-quantity">
                     <div class="select-self select-self-open">
                       <div class="select-self-area">
-                        <a class="input-sub" @click="changeCount(item, false)">-</a>
+                        <a class="input-sub" @click="updateCart(item, '-')">-</a>
                         <span class="select-ipt">{{item.productNum}}</span>
-                        <a class="input-add" @click="changeCount(item, true)">+</a>
+                        <a class="input-add" @click="updateCart(item, '+')">+</a>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div class="cart-tab-4">
-                  <div class="item-price-total">{{item.salePrice * item.productNum}}</div>
+                  <div class="item-price-total">{{item.salePrice*item.productNum|currency("¥", 2)}}</div>
                 </div>
                 <div class="cart-tab-5">
                   <div class="cart-item-opration">
@@ -110,7 +110,7 @@
             <div class="cart-foot-l">
               <div class="item-all-check">
                 <a href="javascipt:;" @click="checkAllCarts">
-                  <span class="checkbox-btn item-check-btn" v-bind:class="{'check':checkAll=='1'}">
+                  <span class="checkbox-btn item-check-btn" v-bind:class="{'check':checkAll}">
                       <svg class="icon icon-ok"><use xlink:href="#icon-ok"/></svg>
                   </span>
                   <span>Select all</span>
@@ -119,10 +119,10 @@
             </div>
             <div class="cart-foot-r">
               <div class="item-total">
-                Item total: <span class="total-price">{{totalAmount}}</span>
+                Item total: <span class="total-price">{{totalAmount|currency("¥", 2)}}</span>
               </div>
               <div class="btn-wrap">
-                <router-link class="btn btn--red" to="/address">Checkout</router-link>
+                <router-link class="btn btn--red" v-bind:class="{'btn--dis':!checkFlag}" to="/address">Checkout</router-link>
               </div>
             </div>
           </div>
@@ -157,6 +157,7 @@
   import NavBread from "@/components/Bread";
   import "./../assets/css/checkout.css"
   import axios from "axios";
+  import {currency} from "./../util/currency"
   export default {
     data () {
       return {
@@ -172,12 +173,18 @@
       NavBread,
       Modal
     },
+    filters: {
+      currency: currency
+    },
     computed: {
       checkAll() {
-        let checkAllFlag = 1;
+        let checkAllFlag = true;
+        if (this.cartList.length == 0) {
+          return false;
+        }
         this.cartList.forEach(item => {
-          if (item.checked != 1) {
-            checkAllFlag = 0;
+          if (item.checked == 0) {
+            checkAllFlag = false;
           }
         });
         return checkAllFlag;
@@ -190,22 +197,34 @@
           }
         });
         return totalAmount;
+      },
+      checkFlag() {
+        let checkEnable = false;
+        this.cartList.forEach(item => {
+          if (item.checked == "1") {
+            checkEnable = true;
+          }
+        });
+        return checkEnable;
       }
     },
     mounted () {
       this.getCartList();
     },
     methods: {
-      checkCart(item) {
-        item.checked = -item.checked + 1;
-      },
       checkAllCarts() {
-        let checked = 1;
-        if (this.checkAll) {
-          checked = 0
-        }
-        this.cartList.forEach(item => {
-          item.checked = checked;
+        let checked = this.checkAll ? 0 : 1;
+        
+        axios.post("/users//Cart/updateAll", {checked: checked}).then(resp => {
+          let res = resp.data;
+          if (res.status == "0") {
+            console.log("check all success");
+            this.cartList.forEach(item => {
+              item.checked = checked;
+            });
+          } else {
+            console.log("check all fail, message: " + res.msg);
+          }
         });
       },
       getCartList() {
@@ -226,14 +245,36 @@
         this.mdShow = false;
         this.confirmShow = false;
       },
-      changeCount(item, plusFlag) {
-        if (plusFlag) {
+      updateCart(item, plusFlag) {
+        if (plusFlag == "+") {
           item.productNum++;
-        } else {
-          if (item.productNum > 0) {
+        } else if (plusFlag == "-" && item.productNum > 1) {
+          if (item.productNum > 1) {
             item.productNum--;
+          } else {
+            console.log("return");
+            
+            return;
           }
+        } else if (!plusFlag) {
+          item.checked = -item.checked + 1 ;
         }
+
+        let params = {
+          productId: item.productId,
+          productNum: item.productNum,
+          checked: item.checked
+        }
+        axios.post("/users/Cart/update", params).then(resp => {
+          let res = resp.data;
+          if (res.status == "0") {
+            console.log("update cart success");
+            
+          } else {
+            console.log("update cart fail");
+            
+          }
+        });
       },
       deleteConfirm(productId) {
         this.deleteProductId = productId;
@@ -244,19 +285,20 @@
         let params = {
           productId: this.deleteProductId
         }
-        axios.post("/users/deleteProduct", params).then(resp => {
+        axios.post("/users/Cart/delete", params).then(resp => {
           let res = resp.data;
           if (res.status == "0") {
-            let deletedProductId = res.result;
-            this.cartList.forEach((item, index) => {
-              if (item.productId == deletedProductId) {
-                console.log("delete arr: " + deletedProductId);
-                this.cartList.splice(index, 1);
-              }
-            });
+            // this.cartList.forEach((item, index) => {
+            //   if (item.productId == this.deleteProductId) {
+            //     console.log("delete arr: " + this.deleteProductId);
+            //     this.cartList.splice(index, 1);
+            //   }
+            // });
+            // js 删除特定元素
+            this.cartList.splice(this.cartList.findIndex(item => item.productId == this.deleteProductId), 1);
             this.closeModalWindow();
           } else {
-            console.log("load cart list error");
+            console.log("delete cart list error");
             this.mdShow = true;
           }
         });

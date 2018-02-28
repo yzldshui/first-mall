@@ -4,7 +4,7 @@ require('./../util/util')
 var User = require('./../models/user');
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
   res.send('respond with a resource');
 });
 
@@ -21,13 +21,13 @@ router.post('/login', function (req, res, next) {
       })
     } else {
       if (doc) {
-        res.cookie("userId",doc.userId, {
+        res.cookie("userId", doc.userId, {
           path: '/',
-          maxAge: 60*60*1000
+          maxAge: 60 * 60 * 1000
         });
         res.cookie("userName", doc.userName, {
           path: '/',
-          maxAge: 60*60*1000
+          maxAge: 60 * 60 * 1000
         });
         res.json({
           status: '0',
@@ -108,44 +108,92 @@ router.post("/getCartList", function (req, res, next) {
   }
 });
 
-router.post("/deleteProduct", function (req, res, next) {
+router.post("/Cart/delete", function (req, res, next) {
   let userId = req.cookies.userId;
   let productId = req.body.productId;
+  User.update({
+    userId: userId
+  }, {
+    $pull: {
+      "cartList": {
+        "productId": productId
+      }
+    }
+  }, function (err, doc) {
+    if (err) {
+      res.json({
+        status: "1",
+        msg: err.message
+      });
+    } else {
+      res.json({
+        status: "0",
+        msg: "success",
+        result: ''
+      });
+    }
+  });
+});
+
+router.post("/Cart/update", function (req, res, next) {
+  let userId = req.cookies.userId;
+  let productId = req.body.productId;
+  let productNum = req.body.productNum;
+  let checked = req.body.checked ? "1" : "0";
+  User.update({
+    "userId": userId,
+    "cartList.productId": productId
+  }, {
+    "cartList.$.productNum": productNum,
+    "cartList.$.checked": checked
+  }, function (err, doc) {
+    if (err) {
+      res.json({
+        status: "1",
+        msg: err.message,
+        result: ""
+      });
+    } else {
+      res.json({
+        status: "0",
+        msg: '',
+        result: "success"
+      });
+    }
+  });
+});
+
+router.post("/Cart/updateAll", function (req, res, next) {
+  let userId = req.cookies.userId;
+  let checked = req.body.checked;
   User.findOne({
     userId: userId
   }, function (err, doc) {
     if (err) {
       res.json({
         status: "1",
-        msg: err.message
-      })
-    } else {
-      let goodItem = '';
-      doc.cartList.forEach((item, index) => {
-        if (item.productId == productId) {
-          goodItem = item;
-          doc.cartList.splice(index, 1);
-        }
+        msg: err.message,
+        result: ""
       });
-      if (goodItem) {
-        doc.save(function (err3, doc3) {
-          if (err3) {
+    } else {
+      if (doc) {
+        doc.cartList.forEach(item => {
+          item.checked = checked;
+        });
+        doc.save(function (err1, doc1) {
+          if (err1) {
             res.json({
               status: "1",
-              msg: err3.message
-            })
+              msg: err1.message,
+              result: ""
+            });
           } else {
             res.json({
               status: "0",
               msg : '',
-              result: productId
+              result: "success"
             });
           }
-        })
-      } else {
-        res.json({
-          status: "1",
-          msg: "删除错误？"
         });
       }
     }
@@ -180,6 +228,10 @@ router.post("/getAddressList", function (req, res, next) {
       }
     });
   }
+});
+
+router.post("/createOrder", function (req, res, next) {
+  
 });
 
 module.exports = router;
