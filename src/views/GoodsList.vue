@@ -167,6 +167,7 @@ export default {
         .then(resp => {
           let res = resp.data;
           this.loading = false;
+          console.log(`load goods success ${this.loading}`);
           if (res.status == "0") {
             if (flag) {
               this.goodsList = this.goodsList.concat(res.result.list);
