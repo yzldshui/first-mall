@@ -20,7 +20,7 @@
             <a href="javascript:void(0)" class="navbar-link" @click="loginModalFlag=true" v-if="!nickName">Login</a>
             <a href="javascript:void(0)" class="navbar-link" v-if="nickName" @click="logout">Logout</a>
             <div class="navbar-cart-container">
-              <span class="navbar-cart-count"></span>
+              <span class="navbar-cart-count" v-show="cartCount>0">{{cartCount}}</span>
               <a class="navbar-link navbar-cart-link" href="/#/cart">
                 <svg class="navbar-cart-logo">
                   <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-cart"></use>
@@ -74,16 +74,25 @@ export default {
       loginModalFlag: false,
       errorTip: false,
       userName: "admin",
-      userPwd: "123456",
-      nickName: ""
+      userPwd: "123456"
     };
   },
   components: {},
+  computed: {
+    nickName() {
+      return this.$store.state.nickName;
+    },
+    cartCount() {
+      return this.$store.state.cartCount;
+    }
+  },
   mounted() {
     axios.get("/users/checkLogin").then(resp => {
       let res = resp.data;
       if (res.status == "0") {
-        this.nickName = res.result;
+        // this.nickName = res.result;
+        this.$store.commit("setNickName", res.result);
+        this.getCartCount();
         console.log("logined");
       } else {
         console.log(res.msg);
@@ -105,7 +114,9 @@ export default {
             if (res.status == "0") {
               console.log("login success");
               this.loginModalFlag = false;
-              this.nickName = res.result.userName;
+              // this.nickName = res.result.userName;
+              this.$store.commit("setNickName", res.result.userName);
+              this.getCartCount();
             } else {
               console.log("login error: " + res.msg);
               this.errorTip = true;
@@ -117,10 +128,22 @@ export default {
       axios.post("/users/logout").then(resp => {
         let res = resp.data;
         if (res.status == "0") {
-          this.nickName = "";
+          // this.nickName = "";
+          this.$store.commit("setNickName", "");
+          this.$store.commit("updateCount", 0);
           console.log("logout success");
         } else {
           console.log("logout error");
+        }
+      });
+    },
+    getCartCount() {
+      axios.get("/users/getCartCount").then(resp => {
+        let res = resp.data;
+        if (res.status == "0") {
+          this.$store.commit("updateCount", res.result);
+        } else {
+          console.log("get cart count error: " + res.msg);
         }
       });
     }

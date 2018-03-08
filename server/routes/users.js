@@ -78,6 +78,41 @@ router.get("/checkLogin", function (req, res, next) {
   }
 });
 
+router.get("/getCartCount", function (req, res, next) {
+  if (req.cookies && req.cookies.userId) {
+    console.log("userId:" + req.cookies.userId);
+    var userId = req.cookies.userId;
+    User.findOne({
+      "userId": userId
+    }, function (err, doc) {
+      if (err) {
+        res.json({
+          status: "0",
+          msg: err.message
+        });
+      } else {
+        let cartList = doc.cartList;
+        let cartCount = 0;
+        cartList.map(function (item) {
+          if (item.checked == "1") {
+            cartCount += parseFloat(item.productNum);
+          }
+        });
+        res.json({
+          status: "0",
+          msg: "",
+          result: cartCount
+        });
+      }
+    });
+  } else {
+    res.json({
+      status: "0",
+      msg: "当前用户不存在"
+    });
+  }
+});
+
 router.post("/getCartList", function (req, res, next) {
   if (req.cookies.userId) {
     let params = {
@@ -190,7 +225,7 @@ router.post("/Cart/updateAll", function (req, res, next) {
           } else {
             res.json({
               status: "0",
-              msg : '',
+              msg: '',
               result: "success"
             });
           }
@@ -231,7 +266,7 @@ router.post("/getAddressList", function (req, res, next) {
 });
 
 router.post("/createOrder", function (req, res, next) {
-  
+
 });
 
 module.exports = router;

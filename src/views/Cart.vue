@@ -269,9 +269,10 @@
           let res = resp.data;
           if (res.status == "0") {
             console.log("update cart success");
-            
+            this.getCartCount();
           } else {
             console.log("update cart fail");
+            console.log(res.msg);
             
           }
         });
@@ -297,9 +298,20 @@
             // js 删除特定元素
             this.cartList.splice(this.cartList.findIndex(item => item.productId == this.deleteProductId), 1);
             this.closeModalWindow();
+            this.getCartCount();
           } else {
             console.log("delete cart list error");
             this.mdShow = true;
+          }
+        });
+      },
+      getCartCount() {
+        axios.get("/users/getCartCount").then(resp => {
+          let res = resp.data;
+          if (res.status == "0") {
+            this.$store.commit("updateCount", res.result);
+          } else {
+            console.log("get cart count error: " + res.msg);
           }
         });
       }
